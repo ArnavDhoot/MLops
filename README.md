@@ -1,133 +1,169 @@
-# MLOPs-Production-Ready-Machine-Learning-Project
+# US Visa Approval Prediction - MLOps Production-Ready Project
 
-Youtube Playlist: https://youtube.com/playlist?list=PLkz_y24mlSJZvJOj1UXiJPVRQrNFdNEXX&si=FRFLpnve9MS6Rii9
+This repository contains a production-ready MLOps pipeline for predicting US visa approval outcomes. The project combines machine learning training, data validation, model evaluation, cloud storage, containerization, and a web-based inference interface in a modular and extensible structure.
 
-- Anaconda: https://www.anaconda.com/
-- Vs code: https://code.visualstudio.com/download
-- Git: https://git-scm.com/
-- Flowchart: https://whimsical.com/
-- MLOPs Tool: https://www.evidentlyai.com/
-- MongoDB: https://account.mongodb.com/account/login
-- Data link: https://www.kaggle.com/datasets/moro23/easyvisa-dataset
+## Overview
 
+The system predicts the target column `case_status` using applicant and company-related features such as education level, job experience, wage, company age, and employment region. The project is organized as a full ML lifecycle pipeline with:
 
-## Git commands
+- Data ingestion from MongoDB
+- Schema validation and data drift monitoring
+- Feature engineering and preprocessing
+- Model training with hyperparameter search
+- Model evaluation and promotion logic
+- FastAPI-based prediction service
+- Docker support and AWS deployment workflow
 
-```bash
-git add .
+## Project Structure
 
-git commit -m "Updated"
-
-git push origin main
+```text
+.
+├── app.py                  # FastAPI app for UI and prediction endpoints
+├── demo.py                 # Demo script
+├── Dockerfile              # Container definition
+├── requirements.txt        # Python dependencies
+├── setup.py                # Package installation config
+├── config/                 # YAML config for schema and model tuning
+├── flowcharts/             # Pipeline flow diagrams
+├── notebook/               # EDA and experimentation notebooks
+├── static/                 # CSS and static frontend assets
+├── templates/              # HTML templates for the web app
+└── us_visa/                # Main package
+    ├── components/         # Data ingestion, validation, transformation, training, evaluation, pusher
+    ├── configuration/     # MongoDB and AWS clients/configuration
+    ├── constants/         # Project constants and file names
+    ├── data_access/       # MongoDB data access layer
+    ├── entity/            # Config and artifact dataclasses
+    ├── exception/         # Custom exception handling
+    ├── logger/            # Logging utilities
+    ├── pipline/           # Training and prediction pipeline orchestration
+    └── utils/             # Shared helper utilities
 ```
 
+## Tech Stack
 
-## How to run?
+- Python 3.8+
+- FastAPI + Uvicorn
+- Pandas, NumPy, Scikit-learn
+- Imbalanced-learn (SMOTEENN)
+- XGBoost, CatBoost
+- PyYAML, Dill, Pymongo
+- Evidently for data drift monitoring
+- Boto3 for AWS S3 integration
+- Docker
+
+## Data Source
+
+The project expects a MongoDB collection named `visa_data` in the database `US_VISA`. The data is exported from MongoDB into local artifact files during training.
+
+## Environment Setup
+
+### 1) Create and activate a virtual environment
 
 ```bash
 conda create -n visa python=3.8 -y
-```
-
-```bash
 conda activate visa
 ```
 
+### 2) Install dependencies
+
 ```bash
 pip install -r requirements.txt
+pip install -e .
 ```
 
-## Workflow:
+### 3) Set environment variables
 
-1. constants
-2. entity
-3. components
-4. pipeline
-5. Main file
-
-
-
-### Export the  environment variable
 ```bash
-
-
-export MONGODB_URL="mongodb+srv://<username>:<password>...."
-
-export AWS_ACCESS_KEY_ID=<AWS_ACCESS_KEY_ID>
-
-export AWS_SECRET_ACCESS_KEY=<AWS_SECRET_ACCESS_KEY>
-
-
+export MONGODB_URL="mongodb+srv://<username>:<password>@<cluster-url>"
+export AWS_ACCESS_KEY_ID="<your-aws-access-key>"
+export AWS_SECRET_ACCESS_KEY="<your-aws-secret-key>"
+export AWS_DEFAULT_REGION="us-east-1"
 ```
 
+## Running the Project Locally
 
-# AWS-CICD-Deployment-with-Github-Actions
+### Start the web application
 
-## 1. Login to AWS console.
+```bash
+python app.py
+```
 
-## 2. Create IAM user for deployment
+Then open:
 
-	#with specific access
+```text
+http://localhost:8080
+```
 
-	1. EC2 access : It is virtual machine
+### Available endpoints
 
-	2. ECR: Elastic Container registry to save your docker image in aws
+- `GET /` -> Renders the prediction UI
+- `POST /` -> Submits form data and returns the prediction result
+- `GET /train` -> Triggers the training pipeline
 
+## Training Pipeline Workflow
 
-	#Description: About the deployment
+The training workflow runs through the following stages:
 
-	1. Build docker image of the source code
+1. Data Ingestion
+   - Reads data from MongoDB
+   - Stores it in the artifact folder
+   - Splits it into train and test sets
 
-	2. Push your docker image to ECR
+2. Data Validation
+   - Checks schema consistency
+   - Applies drift detection using Evidently
 
-	3. Launch Your EC2 
+3. Data Transformation
+   - Builds preprocessing pipelines
+   - Applies encoding, scaling, and resampling
 
-	4. Pull Your image from ECR in EC2
+4. Model Trainer
+   - Trains multiple candidate models using configurable search strategies
 
-	5. Lauch your docker image in EC2
+5. Model Evaluation
+   - Compares the new model against the existing production model
+   - Approves the model if it meets the acceptance threshold
 
-	#Policy:
+6. Model Pusher
+   - Uploads the approved model to AWS S3 for deployment
 
-	1. AmazonEC2ContainerRegistryFullAccess
+## Docker Usage
 
-	2. AmazonEC2FullAccess
+Build and run the application with Docker:
 
-	
-## 3. Create ECR repo to store/save docker image
-    - Save the URI: 315865595366.dkr.ecr.us-east-1.amazonaws.com/visarepo
+```bash
+docker build -t usvisa-app .
+docker run -p 8080:8080 usvisa-app
+```
 
-	
-## 4. Create EC2 machine (Ubuntu) 
+## AWS and CI/CD Notes
 
-## 5. Open EC2 and Install docker in EC2 Machine:
-	
-	
-	#optinal
+The repository is prepared for AWS-based deployment using:
 
-	sudo apt-get update -y
+- Amazon ECR for image storage
+- Amazon EC2 for serving the container
+- GitHub Actions for automated build and deployment
 
-	sudo apt-get upgrade
-	
-	#required
+Typical GitHub secrets used for deployment include:
 
-	curl -fsSL https://get.docker.com -o get-docker.sh
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_DEFAULT_REGION`
+- `ECR_REPO`
 
-	sudo sh get-docker.sh
+## Git Commands
 
-	sudo usermod -aG docker ubuntu
+```bash
+git add .
+git commit -m "Update project"
+git push origin main
+```
 
-	newgrp docker
-	
-# 6. Configure EC2 as self-hosted runner:
-    setting>actions>runner>new self hosted runner> choose os> then run command one by one
+## Notes
 
-
-# 7. Setup github secrets:
-
-   - AWS_ACCESS_KEY_ID
-   - AWS_SECRET_ACCESS_KEY
-   - AWS_DEFAULT_REGION
-   - ECR_REPO
-
-    
+- The project writes generated artifacts under the `artifact/` directory during training.
+- The app expects the trained model and preprocessing object to be available for prediction.
+- Make sure MongoDB and AWS credentials are configured before running training or inference.
 
 
